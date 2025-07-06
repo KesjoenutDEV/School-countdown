@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Countdown naar het einde van school</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .clock-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 50px;
+            flex-wrap: wrap;
+        }
+        .clock-box {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px 30px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            min-width: 280px;
+        }
+        .clock-title {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        .clock {
+            font-size: 2.2em;
+            font-weight: bold;
+            font-family: monospace;
+            color: #2c3e50;
+            letter-spacing: 2px;
+        }
+        .milliseconds {
+            font-size: 0.5em;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <h1>Countdown naar het einde van school</h1>
+    
+    <div class="clock-container">
+        <div class="clock-box">
+            <div class="clock-title">Schooltijd</div>
+            <div class="clock" id="schoolClock">--:--:--:--<span class="milliseconds">.--</span></div>
+        </div>
+        
+        <div class="clock-box">
+            <div class="clock-title">Alle tijd</div>
+            <div class="clock" id="totalClock">--:--:--:--<span class="milliseconds">.--</span></div>
+        </div>
+    </div>
+
+    <script>
+        // Bereken de target datum (volgende woensdag over 2 weken om 12:00)
+        function calculateTargetDate() {
+            const now = new Date();
+            let target = new Date(now);
+            
+            // Ga naar volgende woensdag over 2 weken
+            target.setDate(now.getDate() + ((2 * 7) + (3 + 7 - now.getDay()) % 7));
+            target.setHours(12, 0, 0, 0); // 12:00 's middags
+            
+            return target;
+        }
+
+        // Controleer of we in een actief schooltijdvenster zitten
+        function isSchoolTime(now) {
+            const day = now.getDay();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const totalMins = hours * 60 + minutes;
+
+            // Weekend? Niet actief
+            if (day === 0 || day === 6) return false;
+
+            // Maandag t/m vrijdag
+            return (totalMins >= 8.5 * 60 && totalMins <= 14.75 * 60); // 8:30-14:45
+        }
+
+        // Formatteer tijd als DD:HH:MM:SS.ms
+        function formatTime(diff) {
+            if (diff <= 0) return "00:00:00:00.00";
+
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            const ms = Math.floor((diff % 1000) / 10);
+
+            return `${days.toString().padStart(2, '0')}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+        }
+
+        // Hoofd update functie
+        function updateClocks() {
+            const now = new Date();
+            const target = calculateTargetDate();
+            const diff = target - now;
+
+            // Update totale tijd clock
+            document.getElementById('totalClock').textContent = formatTime(diff);
+
+            // Update schooltijd clock
+            if (isSchoolTime(now) {
+                document.getElementById('schoolClock').textContent = formatTime(diff);
+            } else {
+                document.getElementById('schoolClock').textContent = "--:--:--:--.--";
+            }
+
+            // Herhaal elke 10ms voor vloeiende milliseconde weergave
+            requestAnimationFrame(updateClocks);
+        }
+
+        // Start de clocks
+        updateClocks();
+    </script>
+</body>
+</html>
