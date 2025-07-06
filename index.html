@@ -73,7 +73,7 @@
 <body>
     <h1>Countdown naar einde school</h1>
     <p>Eindigt op woensdag 16 juli om 12:00</p>
-    
+
     <div class="clock-container">
         <div class="clock-box">
             <div class="clock-title">Schooltijd</div>
@@ -94,10 +94,14 @@
                     <div class="time-value" id="schoolSeconds">00</div>
                     <div class="time-label">seconden</div>
                 </div>
+                <div class="time-unit">
+                    <div class="time-value" id="schoolMillis">00</div>
+                    <div class="time-label">ms</div>
+                </div>
             </div>
             <div class="status" id="schoolStatus">Buiten schooltijden</div>
         </div>
-        
+
         <div class="clock-box">
             <div class="clock-title">Alle tijd</div>
             <div class="clock-display">
@@ -117,81 +121,131 @@
                     <div class="time-value" id="totalSeconds">00</div>
                     <div class="time-label">seconden</div>
                 </div>
+                <div class="time-unit">
+                    <div class="time-value" id="totalMillis">00</div>
+                    <div class="time-label">ms</div>
+                </div>
             </div>
             <div class="target-date">Eindigt op 16 juli 12:00</div>
         </div>
     </div>
 
     <script>
-        // Vaste einddatum - 16 juli om 12:00
         const TARGET_DATE = new Date();
-        TARGET_DATE.setMonth(6); // Juli (0=januari, 6=juli)
+        TARGET_DATE.setMonth(6); // juli
         TARGET_DATE.setDate(16);
         TARGET_DATE.setHours(12, 0, 0, 0);
 
-        // Schooltijden
         const SCHOOL_HOURS = {
-            normal: { start: 8.5, end: 14.75 },    // 8:30-14:45
-            lastDay: { start: 11, end: 12 }         // 16 juli: 11:00-12:00
+            normal: { start: 8.5, end: 14.75 }, // 8:30 - 14:45
+            lastDay: { start: 11, end: 12 }     // 11:00 - 12:00 op 16 juli
         };
 
-        // Controleer of binnen schooltijden
         function isSchoolTime(now) {
-            // Laatste dag (16 juli)
+            const day = now.getDay();
+            const hour = now.getHours() + now.getMinutes() / 60;
+
             if (now.getDate() === 16 && now.getMonth() === 6) {
-                const currentHour = now.getHours() + now.getMinutes()/60;
-                return currentHour >= SCHOOL_HOURS.lastDay.start && 
-                       currentHour < SCHOOL_HOURS.lastDay.end;
+                return hour >= SCHOOL_HOURS.lastDay.start && hour < SCHOOL_HOURS.lastDay.end;
             }
-            
-            // Normale schooldagen (ma-vr)
-            if (now.getDay() >= 1 && now.getDay() <= 5) {
-                const currentHour = now.getHours() + now.getMinutes()/60;
-                return currentHour >= SCHOOL_HOURS.normal.start && 
-                       currentHour < SCHOOL_HOURS.normal.end;
+
+            if (day >= 1 && day <= 5) {
+                return hour >= SCHOOL_HOURS.normal.start && hour < SCHOOL_HOURS.normal.end;
             }
-            
+
             return false;
         }
 
-        // Update de countdown
-        function updateCountdown() {
-            const now = new Date();
-            const diff = TARGET_DATE - now;
-            
-            // Bereken tijdseenheden
-            const days = Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
-            const hours = Math.max(0, Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)));
-            const minutes = Math.max(0, Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)));
-            const seconds = Math.max(0, Math.floor((diff % (1000 * 60)) / 1000));
-            
-            // Update volledige tijd
-            document.getElementById('totalDays').textContent = days.toString().padStart(2, '0');
-            document.getElementById('totalHours').textContent = hours.toString().padStart(2, '0');
-            document.getElementById('totalMinutes').textContent = minutes.toString().padStart(2, '0');
-            document.getElementById('totalSeconds').textContent = seconds.toString().padStart(2, '0');
-            
-            // Update schooltijd
-            const isActive = isSchoolTime(now);
-            const statusElement = document.getElementById('schoolStatus');
-            
-            if (isActive) {
-                document.getElementById('schoolDays').textContent = days.toString().padStart(2, '0');
-                document.getElementById('schoolHours').textContent = hours.toString().padStart(2, '0');
-                document.getElementById('schoolMinutes').textContent = minutes.toString().padStart(2, '0');
-                document.getElementById('schoolSeconds').textContent = seconds.toString().padStart(2, '0');
-                statusElement.textContent = "Schooltijd actief";
-                statusElement.className = "status active";
-            } else {
-                statusElement.textContent = "Buiten schooltijden";
-                statusElement.className = "status inactive";
+        function calculateRemainingSchoolMillis(now) {
+            let current = new Date(now);
+            let totalMillis = 0;
+
+            while (current < TARGET_DATE) {
+                const date = new Date(current.getFullYear(), current.getMonth(), current.getDate());
+                const isLastDay = (date.getDate() === 16 && date.getMonth() === 6);
+
+                let start, end;
+                if (isLastDay) {
+                    start = SCHOOL_HOURS.lastDay.start;
+                    end = SCHOOL_HOURS.lastDay.end;
+                } else if (date.getDay() >= 1 && date.getDay() <= 5) {
+                    start = SCHOOL_HOURS.normal.start;
+                    end = SCHOOL_HOURS.normal.end;
+                } else {
+                    current.setDate(current.getDate() + 1);
+                    continue;
+                }
+
+                const schoolStart = new Date(date);
+                schoolStart.setHours(Math.floor(start), (start % 1) * 60, 0, 0);
+                const schoolEnd = new Date(date);
+                schoolEnd.setHours(Math.floor(end), (end % 1) * 60, 0, 0);
+
+                if (current < schoolEnd) {
+                    const effectiveStart = current > schoolStart ? current : schoolStart;
+                    const effectiveEnd = schoolEnd < TARGET_DATE ? schoolEnd : TARGET_DATE;
+
+                    if (effectiveEnd > effectiveStart) {
+                        totalMillis += effectiveEnd - effectiveStart;
+                    }
+                }
+
+                current.setDate(current.getDate() + 1);
+                current.setHours(0, 0, 0, 0);
             }
-            
-            // Blijf updaten
-            setTimeout(updateCountdown, 1000);
+
+            return totalMillis;
         }
 
-        // Start de countdown
+        function formatTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const milliseconds = Math.floor((ms % 1000) / 10); // twee cijfers
+            const seconds = totalSeconds % 60;
+            const minutes = Math.floor(totalSeconds / 60) % 60;
+            const hours = Math.floor(totalSeconds / 3600) % 24;
+            const days = Math.floor(totalSeconds / 86400);
+
+            return {
+                days: days.toString().padStart(2, '0'),
+                hours: hours.toString().padStart(2, '0'),
+                minutes: minutes.toString().padStart(2, '0'),
+                seconds: seconds.toString().padStart(2, '0'),
+                millis: milliseconds.toString().padStart(2, '0')
+            };
+        }
+
+        function updateCountdown() {
+            const now = new Date();
+            const totalRemaining = Math.max(0, TARGET_DATE - now);
+            const schoolRemaining = calculateRemainingSchoolMillis(now);
+
+            const total = formatTime(totalRemaining);
+            document.getElementById('totalDays').textContent = total.days;
+            document.getElementById('totalHours').textContent = total.hours;
+            document.getElementById('totalMinutes').textContent = total.minutes;
+            document.getElementById('totalSeconds').textContent = total.seconds;
+            document.getElementById('totalMillis').textContent = total.millis;
+
+            const isActive = isSchoolTime(now);
+            const schoolStatus = document.getElementById('schoolStatus');
+            const school = formatTime(schoolRemaining);
+
+            if (isActive) {
+                document.getElementById('schoolDays').textContent = school.days;
+                document.getElementById('schoolHours').textContent = school.hours;
+                document.getElementById('schoolMinutes').textContent = school.minutes;
+                document.getElementById('schoolSeconds').textContent = school.seconds;
+                document.getElementById('schoolMillis').textContent = school.millis;
+                schoolStatus.textContent = "Schooltijd actief";
+                schoolStatus.className = "status active";
+            } else {
+                schoolStatus.textContent = "Buiten schooltijden";
+                schoolStatus.className = "status inactive";
+            }
+
+            setTimeout(updateCountdown, 5);
+        }
+
         updateCountdown();
     </script>
 </body>
