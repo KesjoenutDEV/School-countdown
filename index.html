@@ -11,77 +11,148 @@
             padding: 20px;
             background-color: #f5f5f5;
         }
-        .clock-container {
+        .countdown-container {
             display: flex;
             justify-content: center;
-            gap: 40px;
-            margin-top: 50px;
+            gap: 30px;
+            margin-top: 40px;
             flex-wrap: wrap;
         }
-        .clock-box {
-            background-color: white;
+        .countdown-box {
+            background: white;
             border-radius: 10px;
-            padding: 20px 30px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            min-width: 300px;
+            padding: 20px;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            min-width: 280px;
         }
-        .clock-title {
-            font-size: 1.3em;
+        .countdown-title {
+            font-size: 1.2em;
             margin-bottom: 15px;
             color: #2c3e50;
-            font-weight: bold;
         }
-        .clock {
-            font-size: 1.8em;
+        .time-unit {
+            display: inline-block;
+            margin: 0 5px;
+            text-align: center;
+        }
+        .time-value {
+            font-size: 2em;
             font-weight: bold;
             font-family: monospace;
             color: #2c3e50;
         }
         .time-label {
-            font-size: 0.6em;
+            font-size: 0.8em;
             color: #7f8c8d;
-            display: inline-block;
-            width: 60px;
-            text-align: center;
-        }
-        .active {
-            color: #27ae60;
-        }
-        .inactive {
-            color: #e74c3c;
         }
         .status {
-            margin-top: 10px;
+            margin-top: 15px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            display: inline-block;
             font-weight: bold;
+        }
+        .active {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        .inactive {
+            background-color: #ffebee;
+            color: #c62828;
         }
     </style>
 </head>
 <body>
     <h1>Countdown naar einde school</h1>
     
-    <div class="clock-container">
-        <div class="clock-box">
-            <div class="clock-title">Schooltijd</div>
-            <div class="clock" id="schoolClock">
-                <span id="schoolDays">00</span><span class="time-label">dagen</span>
-                <span id="schoolHours">00</span><span class="time-label">uren</span>
-                <span id="schoolMinutes">00</span><span class="time-label">min</span>
-                <span id="schoolSeconds">00</span><span class="time-label">sec</span>
+    <div class="countdown-container">
+        <div class="countdown-box">
+            <div class="countdown-title">Schooltijd countdown</div>
+            <div class="countdown-display">
+                <div class="time-unit">
+                    <div class="time-value" id="schoolDays">00</div>
+                    <div class="time-label">dagen</div>
+                </div>
+                <div class="time-unit">
+                    <div class="time-value" id="schoolHours">00</div>
+                    <div class="time-label">uren</div>
+                </div>
+                <div class="time-unit">
+                    <div class="time-value" id="schoolMinutes">00</div>
+                    <div class="time-label">minuten</div>
+                </div>
+                <div class="time-unit">
+                    <div class="time-value" id="schoolSeconds">00</div>
+                    <div class="time-label">seconden</div>
+                </div>
             </div>
-            <div class="status" id="schoolStatus"></div>
-        </div>
-        
-        <div class="clock-box">
-            <div class="clock-title">Alle tijd</div>
-            <div class="clock" id="totalClock">
-                <span id="totalDays">00</span><span class="time-label">dagen</span>
-                <span id="totalHours">00</span><span class="time-label">uren</span>
-                <span id="totalMinutes">00</span><span class="time-label">min</span>
-                <span id="totalSeconds">00</span><span class="time-label">sec</span>
-            </div>
+            <div class="status" id="schoolStatus">Buiten schooltijden</div>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        // Bereken doeldatum (woensdag over 2 weken om 12:00)
+        function getTargetDate() {
+            const now = new Date();
+            const target = new Date(now);
+            
+            // Bereken dagen tot volgende woensdag over 2 weken
+            const daysUntilWednesday = (3 + 7 - now.getDay()) % 7;
+            target.setDate(now.getDate() + daysUntilWednesday + 14);
+            target.setHours(12, 0, 0, 0);
+            
+            return target;
+        }
+
+        // Controleer of binnen schooltijden (8:30-14:45 op werkdagen)
+        function isSchoolTime() {
+            const now = new Date();
+            const day = now.getDay();
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            
+            // Weekend
+            if (day === 0 || day === 6) return false;
+            
+            // Maandag-vrijdag
+            const totalMinutes = hours * 60 + minutes;
+            return totalMinutes >= 510 && totalMinutes <= 885; // 8:30-14:45
+        }
+
+        // Update de countdown
+        function updateCountdown() {
+            const now = new Date();
+            const target = getTargetDate();
+            const diff = target - now;
+            
+            // Bereken tijdseenheden
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            // Update display
+            document.getElementById('schoolDays').textContent = days.toString().padStart(2, '0');
+            document.getElementById('schoolHours').textContent = hours.toString().padStart(2, '0');
+            document.getElementById('schoolMinutes').textContent = minutes.toString().padStart(2, '0');
+            document.getElementById('schoolSeconds').textContent = seconds.toString().padStart(2, '0');
+            
+            // Update status
+            const statusElement = document.getElementById('schoolStatus');
+            if (isSchoolTime()) {
+                statusElement.textContent = "Schooltijd actief";
+                statusElement.className = "status active";
+            } else {
+                statusElement.textContent = "Buiten schooltijden";
+                statusElement.className = "status inactive";
+            }
+            
+            // Blijf updaten
+            setTimeout(updateCountdown, 1000);
+        }
+
+        // Start de countdown
+        updateCountdown();
+    </script>
 </body>
 </html>
