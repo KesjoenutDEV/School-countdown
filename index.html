@@ -3,21 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Countdown naar het einde van school</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>School Countdown</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .clock-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 50px;
+            flex-wrap: wrap;
+        }
+        .clock-box {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px 30px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            min-width: 300px;
+        }
+        .clock-title {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        .clock {
+            font-size: 1.8em;
+            font-weight: bold;
+            font-family: monospace;
+            color: #2c3e50;
+        }
+        .time-label {
+            font-size: 0.6em;
+            color: #7f8c8d;
+            display: inline-block;
+            width: 60px;
+            text-align: center;
+        }
+        .active {
+            color: #27ae60;
+        }
+        .inactive {
+            color: #e74c3c;
+        }
+        .status {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-    <h1>Countdown naar het einde van school</h1>
+    <h1>Countdown naar einde school</h1>
     
     <div class="clock-container">
         <div class="clock-box">
             <div class="clock-title">Schooltijd</div>
-            <div class="clock" id="schoolClock">--:--:--:--<span class="milliseconds">.--</span></div>
+            <div class="clock" id="schoolClock">
+                <span id="schoolDays">00</span><span class="time-label">dagen</span>
+                <span id="schoolHours">00</span><span class="time-label">uren</span>
+                <span id="schoolMinutes">00</span><span class="time-label">min</span>
+                <span id="schoolSeconds">00</span><span class="time-label">sec</span>
+            </div>
+            <div class="status" id="schoolStatus"></div>
         </div>
         
         <div class="clock-box">
             <div class="clock-title">Alle tijd</div>
-            <div class="clock" id="totalClock">--:--:--:--<span class="milliseconds">.--</span></div>
+            <div class="clock" id="totalClock">
+                <span id="totalDays">00</span><span class="time-label">dagen</span>
+                <span id="totalHours">00</span><span class="time-label">uren</span>
+                <span id="totalMinutes">00</span><span class="time-label">min</span>
+                <span id="totalSeconds">00</span><span class="time-label">sec</span>
+            </div>
         </div>
     </div>
 
