@@ -24,41 +24,39 @@ function isSchoolTime(now) {
     return (totalMins >= 8.5 * 60 && totalMins <= 14.75 * 60); // 8:30-14:45
 }
 
-// Formatteer tijd als DD:HH:MM:SS.ms
-function formatTime(diff) {
-    if (diff <= 0) return "00:00:00:00.00";
-
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-    const ms = Math.floor((diff % 1000) / 10);
-
-    return `${days.toString().padStart(2, '0')}:${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
-}
-
-// Hoofd update functie
+// Update de klokken
 function updateClocks() {
     const now = new Date();
     const target = calculateTargetDate();
     const diff = target - now;
 
-    // Update totale tijd clock
-    document.getElementById('totalClock').innerHTML = 
-        formatTime(diff).replace('.', '<span class="milliseconds">.') + '</span>';
+    // Bereken alle tijdseenheden
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-    // Update schooltijd clock
-    if (isSchoolTime(now)) {
-        document.getElementById('schoolClock').innerHTML = 
-            formatTime(diff).replace('.', '<span class="milliseconds">.') + '</span>';
-    } else {
-        document.getElementById('schoolClock').innerHTML = 
-            "--:--:--:--<span class=\"milliseconds\">.--</span>";
-    }
+    // Update totale tijd
+    document.getElementById('totalDays').textContent = days.toString().padStart(2, '0');
+    document.getElementById('totalHours').textContent = hours.toString().padStart(2, '0');
+    document.getElementById('totalMinutes').textContent = minutes.toString().padStart(2, '0');
+    document.getElementById('totalSeconds').textContent = seconds.toString().padStart(2, '0');
 
-    // Herhaal elke 10ms voor vloeiende milliseconde weergave
-    setTimeout(updateClocks, 10);
+    // Update schooltijd (altijd zichtbaar)
+    document.getElementById('schoolDays').textContent = days.toString().padStart(2, '0');
+    document.getElementById('schoolHours').textContent = hours.toString().padStart(2, '0');
+    document.getElementById('schoolMinutes').textContent = minutes.toString().padStart(2, '0');
+    document.getElementById('schoolSeconds').textContent = seconds.toString().padStart(2, '0');
+
+    // Update status schooltijd
+    const schoolActive = isSchoolTime(now);
+    const statusElement = document.getElementById('schoolStatus');
+    statusElement.textContent = schoolActive ? "Schooltijd actief" : "Schooltijd niet actief";
+    statusElement.className = `status ${schoolActive ? 'active' : 'inactive'}`;
+
+    // Herhaal elke seconde
+    setTimeout(updateClocks, 1000);
 }
 
-// Start de clocks
+// Start de klokken
 updateClocks();
