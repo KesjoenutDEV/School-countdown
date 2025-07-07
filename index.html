@@ -68,10 +68,57 @@
       font-size: 0.9em;
       color: #666;
     }
+    .current-time {
+      font-size: 1.5em;
+      margin: 20px 0;
+      font-family: monospace;
+    }
+    #celebration {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255,255,255,0.9);
+      z-index: 1000;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    #celebration-button {
+      margin-top: 20px;
+      padding: 15px 30px;
+      font-size: 1.2em;
+      background-color: #ff0000;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    #celebration-button:hover {
+      background-color: #cc0000;
+    }
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 999;
+    }
   </style>
 </head>
 <body>
+  <canvas id="confetti-canvas"></canvas>
+  
+  <div id="celebration">
+    <h1>Gefeliciteerd! De schooltijd is afgelopen!</h1>
+    <a id="celebration-button" href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank">Klik hier om te vieren!</a>
+  </div>
+
   <h1>Countdown naar einde school</h1>
+  <div class="current-time" id="currentTime">--:--:--</div>
   <p>Eindigt op woensdag 16 juli om 12:00</p>
 
   <div class="clock-container">
@@ -82,9 +129,9 @@
         <div class="time-unit"><div class="time-value" id="schoolHours">00</div><div class="time-label">uren</div></div>
         <div class="time-unit"><div class="time-value" id="schoolMinutes">00</div><div class="time-label">minuten</div></div>
         <div class="time-unit"><div class="time-value" id="schoolSeconds">00</div><div class="time-label">seconden</div></div>
-        <div class="time-unit"><div class="time-value" id="schoolMillis">000</div><div class="time-label">ms</div></div>
       </div>
       <div class="status" id="schoolStatus">Buiten schooltijden</div>
+      <div id="nextSchoolTime" class="target-date"></div>
     </div>
 
     <div class="clock-box">
@@ -94,13 +141,72 @@
         <div class="time-unit"><div class="time-value" id="totalHours">00</div><div class="time-label">uren</div></div>
         <div class="time-unit"><div class="time-value" id="totalMinutes">00</div><div class="time-label">minuten</div></div>
         <div class="time-unit"><div class="time-value" id="totalSeconds">00</div><div class="time-label">seconden</div></div>
-        <div class="time-unit"><div class="time-value" id="totalMillis">000</div><div class="time-label">ms</div></div>
       </div>
       <div class="target-date">Eindigt op 16 juli 12:00</div>
+    </div>
+
+    <div class="clock-box">
+      <div class="clock-title">Volgende schooltijd</div>
+      <div class="clock-display">
+        <div class="time-unit"><div class="time-value" id="nextHours">00</div><div class="time-label">uren</div></div>
+        <div class="time-unit"><div class="time-value" id="nextMinutes">00</div><div class="time-label">minuten</div></div>
+        <div class="time-unit"><div class="time-value" id="nextSeconds">00</div><div class="time-label">seconden</div></div>
+      </div>
+      <div id="nextSchoolStart" class="target-date"></div>
     </div>
   </div>
 
   <script>
+    // Confetti-effect
+    const confettiCanvas = document.getElementById('confetti-canvas');
+    const confettiCtx = confettiCanvas.getContext('2d');
+    confettiCanvas.width = window.innerWidth;
+    confettiCanvas.height = window.innerHeight;
+    
+    const particles = [];
+    const particleCount = 150;
+    
+    for (let i = 0; i < particleCount; i++) {
+      particles.push({
+        x: Math.random() * confettiCanvas.width,
+        y: Math.random() * confettiCanvas.height - confettiCanvas.height,
+        size: Math.random() * 10 + 5,
+        speed: Math.random() * 3 + 2,
+        color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+        rotation: Math.random() * 360,
+        rotationSpeed: Math.random() * 10 - 5
+      });
+    }
+    
+    function drawConfetti() {
+      confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+      
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        confettiCtx.save();
+        confettiCtx.translate(p.x, p.y);
+        confettiCtx.rotate(p.rotation * Math.PI / 180);
+        confettiCtx.fillStyle = p.color;
+        confettiCtx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+        confettiCtx.restore();
+        
+        p.y += p.speed;
+        p.rotation += p.rotationSpeed;
+        
+        if (p.y > confettiCanvas.height) {
+          p.y = -p.size;
+          p.x = Math.random() * confettiCanvas.width;
+        }
+      }
+      
+      requestAnimationFrame(drawConfetti);
+    }
+    
+    function startCelebration() {
+      document.getElementById('celebration').style.display = 'flex';
+      drawConfetti();
+    }
+
     const TARGET_DATE = new Date(2025, 6, 16, 12, 0, 0, 0); // 16 juli 2025, 12:00
 
     const SCHOOL_HOURS = {
@@ -109,36 +215,89 @@
       lastDay: { start: 11, end: 12 } // 16 juli: 11:00 - 12:00
     };
 
-    let schoolTimeLeft = calculateTotalSchoolTime(); // in ms
+    let celebrationShown = false;
 
-    function calculateTotalSchoolTime() {
-      let now = new Date();
-      let total = 0;
+    function updateCurrentTime() {
+      const now = new Date();
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      const seconds = now.getSeconds().toString().padStart(2, '0');
+      document.getElementById('currentTime').textContent = `${hours}:${minutes}:${seconds}`;
+      setTimeout(updateCurrentTime, 1000);
+    }
 
-      const current = new Date(now);
-      current.setHours(0, 0, 0, 0);
-
-      while (current < TARGET_DATE) {
-        const day = current.getDay();
-        const date = current.getDate();
-        const month = current.getMonth();
-        let duration = 0;
-
-        if (month === 6 && date === 16) {
-          duration = (SCHOOL_HOURS.lastDay.end - SCHOOL_HOURS.lastDay.start) * 60 * 60 * 1000;
-        } else if (day >= 1 && day <= 5) {
-          if (day === 3) {
-            duration = (SCHOOL_HOURS.wednesday.end - SCHOOL_HOURS.wednesday.start) * 60 * 60 * 1000;
-          } else {
-            duration = (SCHOOL_HOURS.default.end - SCHOOL_HOURS.default.start) * 60 * 60 * 1000;
-          }
+    function calculateNextSchoolTime(now) {
+      const currentDay = now.getDay();
+      const currentHour = now.getHours() + now.getMinutes()/60;
+      let nextStart = new Date(now);
+      
+      // Speciale logica voor laatste dag (16 juli)
+      if (now.getMonth() === 6 && now.getDate() === 16) {
+        if (currentHour < SCHOOL_HOURS.lastDay.start) {
+          nextStart.setHours(11, 0, 0, 0);
+          return { time: nextStart - now, text: "Vandaag om 11:00" };
         }
-
-        total += duration;
-        current.setDate(current.getDate() + 1);
+        return { time: Infinity, text: "Geen volgende schooltijd" };
       }
 
-      return total;
+      // Normale dagen
+      if (currentDay >= 1 && currentDay <= 5) { // Maandag-vrijdag
+        // Woensdag
+        if (currentDay === 3) {
+          if (currentHour < SCHOOL_HOURS.wednesday.start) {
+            nextStart.setHours(8, 30, 0, 0);
+            return { time: nextStart - now, text: "Vandaag om 8:30" };
+          } else if (currentHour < SCHOOL_HOURS.wednesday.end) {
+            return { time: 0, text: "Nu actief" };
+          }
+        } 
+        // Andere schooldagen
+        else if (currentHour < SCHOOL_HOURS.default.start) {
+          nextStart.setHours(8, 30, 0, 0);
+          return { time: nextStart - now, text: "Vandaag om 8:30" };
+        } else if (currentHour < SCHOOL_HOURS.default.end) {
+          return { time: 0, text: "Nu actief" };
+        }
+      }
+
+      // Zoek volgende schooldag
+      let daysToAdd = 1;
+      while (true) {
+        const nextDay = new Date(now);
+        nextDay.setDate(now.getDate() + daysToAdd);
+        const nextDayOfWeek = nextDay.getDay();
+        
+        // Laatste dag (16 juli)
+        if (nextDay.getMonth() === 6 && nextDay.getDate() === 16) {
+          nextDay.setHours(11, 0, 0, 0);
+          const dayName = ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"][nextDay.getDay()];
+          return { time: nextDay - now, text: `${dayName} 16 juli om 11:00` };
+        }
+        
+        // Normale schooldagen
+        if (nextDayOfWeek >= 1 && nextDayOfWeek <= 5) { // Maandag-vrijdag
+          const startHour = nextDayOfWeek === 3 ? SCHOOL_HOURS.wednesday.start : SCHOOL_HOURS.default.start;
+          nextDay.setHours(Math.floor(startHour), (startHour % 1) * 60, 0, 0);
+          const dayName = ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"][nextDay.getDay()];
+          return { time: nextDay - now, text: `${dayName} om ${Math.floor(startHour)}:${(startHour % 1 * 60).toString().padStart(2, '0')}` };
+        }
+        daysToAdd++;
+      }
+    }
+
+    function formatTime(ms) {
+      ms = Math.max(0, ms);
+      const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+
+      return {
+        days: days.toString().padStart(2, '0'),
+        hours: hours.toString().padStart(2, '0'),
+        minutes: minutes.toString().padStart(2, '0'),
+        seconds: seconds.toString().padStart(2, '0')
+      };
     }
 
     function isSchoolTime(now) {
@@ -162,40 +321,26 @@
       return false;
     }
 
-    function formatTime(ms) {
-      ms = Math.max(0, ms);
-      const days = Math.floor(ms / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((ms % (1000 * 60)) / 1000);
-      const millis = ms % 1000;
-
-      return {
-        days: days.toString().padStart(2, '0'),
-        hours: hours.toString().padStart(2, '0'),
-        minutes: minutes.toString().padStart(2, '0'),
-        seconds: seconds.toString().padStart(2, '0'),
-        millis: millis.toString().padStart(3, '0')
-      };
-    }
-
     function update() {
       const now = new Date();
       const totalLeft = TARGET_DATE - now;
+
+      // Check of de tijd is afgelopen
+      if (totalLeft <= 0 && !celebrationShown) {
+        celebrationShown = true;
+        startCelebration();
+      }
 
       const totalFormatted = formatTime(totalLeft);
       document.getElementById('totalDays').textContent = totalFormatted.days;
       document.getElementById('totalHours').textContent = totalFormatted.hours;
       document.getElementById('totalMinutes').textContent = totalFormatted.minutes;
       document.getElementById('totalSeconds').textContent = totalFormatted.seconds;
-      document.getElementById('totalMillis').textContent = totalFormatted.millis;
 
       const statusEl = document.getElementById('schoolStatus');
       const inSchool = isSchoolTime(now);
 
       if (inSchool) {
-        const elapsed = 5; // 5 ms per tick
-        schoolTimeLeft -= elapsed;
         statusEl.textContent = "Schooltijd actief";
         statusEl.className = "status active";
       } else {
@@ -203,16 +348,32 @@
         statusEl.className = "status inactive";
       }
 
-      const schoolFormatted = formatTime(schoolTimeLeft);
+      const schoolFormatted = formatTime(totalLeft);
       document.getElementById('schoolDays').textContent = schoolFormatted.days;
       document.getElementById('schoolHours').textContent = schoolFormatted.hours;
       document.getElementById('schoolMinutes').textContent = schoolFormatted.minutes;
       document.getElementById('schoolSeconds').textContent = schoolFormatted.seconds;
-      document.getElementById('schoolMillis').textContent = schoolFormatted.millis;
 
-      setTimeout(update, 5);
+      // Update volgende schooltijd
+      const nextSchool = calculateNextSchoolTime(now);
+      document.getElementById('nextSchoolStart').textContent = nextSchool.text;
+      
+      if (nextSchool.time > 0) {
+        const nextFormatted = formatTime(nextSchool.time);
+        document.getElementById('nextHours').textContent = nextFormatted.hours;
+        document.getElementById('nextMinutes').textContent = nextFormatted.minutes;
+        document.getElementById('nextSeconds').textContent = nextFormatted.seconds;
+      } else {
+        document.getElementById('nextHours').textContent = '00';
+        document.getElementById('nextMinutes').textContent = '00';
+        document.getElementById('nextSeconds').textContent = '00';
+      }
+
+      setTimeout(update, 1000);
     }
 
+    // Start alles
+    updateCurrentTime();
     update();
   </script>
 </body>
